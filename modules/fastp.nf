@@ -6,7 +6,7 @@ process FASTP {
         tuple val(sample_id), path(reads)
 
     output:
-        tuple val(sample_id), path("${sample_id}_R1.trim.fastq.gz"), path("${sample_id}_R2.trim.fastq.gz"), emit: trimmed_reads
+        tuple val(sample_id), path("${sample_id}_R1.trimmed.fastq.gz"), path("${sample_id}_R2.trimmed.fastq.gz"), emit: trimmed_reads
         path "${sample_id}.fastp.html", emit: html
         path "${sample_id}.fastp.json", emit: json
 
@@ -16,7 +16,7 @@ process FASTP {
     """
     fastp \
       -i ${reads[0]} -I ${reads[1]} \
-      -o ${sample_id}_R1.trim.fastq.gz -O ${sample_id}_R2.trim.fastq.gz \
+      -o ${sample_id}_R1.trimmed.fastq.gz -O ${sample_id}_R2.trimmed.fastq.gz \
       --detect_adapter_for_pe \
       --qualified_quality_phred 20 \
       --length_required 50 \
