@@ -6,9 +6,9 @@ process FASTP {
         tuple val(sample_id), path(reads)
 
     output:
-        tuple val(sample_id), path("${sample_id}_R1.trim.fastq.gz"), path("${sample_id}_R2.trim.fastq.gz")
-        path "${sample_id}.fastp.html" optional true
-        path "${sample_id}.fastp.json" optional true
+        tuple val(sample_id), path("${sample_id}_R1.trim.fastq.gz"), path("${sample_id}_R2.trim.fastq.gz"), emit: trimmed_reads
+        path "${sample_id}.fastp.html", emit: html
+        path "${sample_id}.fastp.json", emit: json
 
     publishDir "${params.outdir}/qc", mode: 'copy'    
 
