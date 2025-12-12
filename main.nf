@@ -3,6 +3,7 @@ nextflow.enable.dsl=2
 // Import modules
 include { FASTP } from './modules/fastp.nf'
 include { BWA_MEM2 } from './modules/bwa_mem2.nf'
+include { MOSDEPTH } from './modules/mosdepth.nf'
 
 // Workflow params
 workflow {
@@ -30,5 +31,8 @@ workflow {
         [sample_id, r1, r2, reference] 
     }
     aligned_bam = BWA_MEM2(trimmed_reads_with_ref)
+    
+    // Run MOSDEPTH module
+    coverage = MOSDEPTH(aligned_bam)
 
 }
