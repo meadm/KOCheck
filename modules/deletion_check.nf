@@ -1,45 +1,86 @@
 process DELETION_CHECK {
+
     tag "${sample_id}"
 
     input:
     tuple val(sample_id), path(bam), path(summary_txt), path(gene_bed)
 
     output:
-    tuple val(sample_id), path("${sample_id}.deletion_check.txt")
+    path "${sample_id}.deletion_check.csv"
 
     script:
     """
-    # Extract gene coordinates (BED file must have 3 columns: chrom start end)
-    chrom=\$(awk '{print \$1}' ${gene_bed})
-    start=\$(awk '{print \$2}' ${gene_bed})
-    end=\$(awk '{print \$3}' ${gene_bed})
+    set -euo pipefail
 
-    # Calculate gene length
-    gene_len=\$(( end - start ))
+    ############################
+    # Validate BED file
+    ############################
 
-    # Extract gene coverage summary from mosdepth summary file
-    # Filter for exact chromosome match (not the _region line)
-    chrom_mean=\$(grep -P "^${chrom}\t" ${summary_txt} | awk '{print \$4}')
-
-    # Extract gene coverage using mosdepth per-region stats (quick & dirty):
-    # mosdepth always creates <prefix>.regions.bed.gz for per-region coverage.
-    # We'll approximate gene region coverage using samtools depth.
-    mean_gene_cov=\$(samtools depth -r ${chrom}:\$start-\$end ${bam} | \
-                     awk '{sum+=\$3} END { if (NR>0) print sum/NR; else print 0 }')
-
-    # Decide deletion using a simple threshold:
-    #   If gene coverage < 10% of chromosome mean → deleted
-    status="intact"
-    threshold=\$(echo "\$chrom_mean * 0.1" | bc)
-
-    below=\$(echo "\$mean_gene_cov < \$threshold" | bc)
-    if [ "\$below" -eq 1 ]; then
-        status="deleted"
+    # Must contain exactly one line
+    if [ \$(wc -l < ${gene_bed}) -ne 1 ]; then
+        echo "ERROR: gene BED file must contain exactly one line" >&2
+        exit 1
     fi
 
-    # Write output
-    echo -e "sample\\tstatus\\tchrom_mean_cov\\tgene_mean_cov" > ${sample_id}.deletion_check.txt
-    echo -e "${sample_id}\\t\$status\\t\$chrom_mean\\t\$mean_gene_cov" >> ${sample_id}.deletion_check.txt
+    read chrom start end < ${gene_bed}
+
+    # Start/end must be integers
+    if ! [[ "\$start" =~ ^[0-9]+$ && "\$end" =~ ^[0-9]+$ ]]; then
+        echo "ERROR: BED start/end must be integers: start=\$start end=\$end" >&2
+        exit 1
+    fi
+
+    # Start must be less than end
+    if [ "\$start" -ge "\$end" ]; then
+        echo "ERROR: BED coordinates invalid (start >= end): \$start \$end" >&2
+        exit 1
+    fi
+
+    ############################
+    # Get mean coverage from the mosdepth summary of the chromosome defined in the chrom variable
+    ############################
+
+    chrom_mean=\$(awk -v chr="\$chrom" '\$1 == chr {print \$4}' ${summary_txt})
+
+    if [ -z "\$chrom_mean" ]; then
+        echo "ERROR: Chromosome \$chrom not found in mosdepth summary" >&2
+        exit 1
+    fi
+
+    ############################
+    # Compute mean gene coverage
+    ############################
+
+    mean_gene_cov=\$(samtools depth -r "\$chrom:\$start-\$end" ${bam} | \
+        awk '{sum+=\$3} END { if (NR>0) print sum/NR; else print 0 }')
+
+    ############################
+    # Classify deletion status
+    ############################
+
+    ratio=\$(awk -v g="\$mean_gene_cov" -v c="\$chrom_mean" \
+        'BEGIN { if (c>0) print g/c; else print 0 }')
+
+    status="ambiguous"
+
+    is_deleted=\$(awk -v r="\$ratio" -v t="${params.delete_ratio}" \
+        'BEGIN { print (r < t) }')
+
+    is_intact=\$(awk -v r="\$ratio" -v t="${params.intact_ratio}" \
+        'BEGIN { print (r > t) }')
+
+    if [ "\$is_deleted" -eq 1 ]; then
+        status="deleted"
+    elif [ "\$is_intact" -eq 1 ]; then
+        status="intact"
+    fi
+
+    ############################
+    # Write CSV output
+    ############################
+
+    echo "sample_id,deletion_status" > ${sample_id}.deletion_check.csv
+    echo "${sample_id},\${status}" >> ${sample_id}.deletion_check.csv
     """
 }
 
