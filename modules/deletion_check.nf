@@ -2,8 +2,10 @@ process DELETION_CHECK {
 
     tag "${sample_id}"
 
+    publishDir "${params.outdir}/deletion_check", mode: 'copy'
+
     input:
-    tuple val(sample_id), path(bam), path(summary_txt), path(gene_bed)
+    tuple val(sample_id), path(bam), path(summary_txt), path(gene_bed), path(bai)
 
     output:
     path "${sample_id}.deletion_check.csv"
@@ -23,12 +25,6 @@ process DELETION_CHECK {
     fi
 
     read chrom start end < ${gene_bed}
-
-    # Start/end must be integers
-    if ! [[ "\$start" =~ ^[0-9]+$ && "\$end" =~ ^[0-9]+$ ]]; then
-        echo "ERROR: BED start/end must be integers: start=\$start end=\$end" >&2
-        exit 1
-    fi
 
     # Start must be less than end
     if [ "\$start" -ge "\$end" ]; then
@@ -51,9 +47,9 @@ process DELETION_CHECK {
     # Compute mean gene coverage
     ############################
 
-    mean_gene_cov=\$(samtools depth -r "\$chrom:\$start-\$end" ${bam} | \
+    mean_gene_cov=\$(samtools depth -a -r "\$chrom:\$start-\$end" ${bam} | \
         awk '{sum+=\$3} END { if (NR>0) print sum/NR; else print 0 }')
-
+    
     ############################
     # Classify deletion status
     ############################

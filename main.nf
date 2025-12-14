@@ -4,6 +4,7 @@ nextflow.enable.dsl=2
 include { FASTP } from './modules/fastp.nf'
 include { BWA_MEM2 } from './modules/bwa_mem2.nf'
 include { MOSDEPTH } from './modules/mosdepth.nf'
+include { DELETION_CHECK } from './modules/deletion_check.nf'
 
 // Workflow params
 workflow {
@@ -34,5 +35,13 @@ workflow {
     
     // Run MOSDEPTH module
     coverage = MOSDEPTH(aligned_bam)
+
+    // Run DELETION_CHECK module
+    // DELETION_CHECK needs: (sample_id, bam, summary_txt, gene_bed)
+    // Combine BAM from BWA_MEM2, summary from MOSDEPTH, and gene_bed
+    deletion_check_input = aligned_bam.join(coverage).map { sample_id, bam, bai, per_base, regions, summary_txt ->
+        [sample_id, bam, summary_txt, gene_bed, bai]
+    }
+    deletion_results = DELETION_CHECK(deletion_check_input)
 
 }
