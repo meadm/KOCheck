@@ -5,6 +5,7 @@ include { FASTP } from './modules/fastp.nf'
 include { BWA_MEM2 } from './modules/bwa_mem2.nf'
 include { MOSDEPTH } from './modules/mosdepth.nf'
 include { DELETION_CHECK } from './modules/deletion_check.nf'
+include { COVERAGE_PLOT } from './modules/coverage_plot.nf'
 
 // Workflow params
 workflow {
@@ -43,5 +44,14 @@ workflow {
         [sample_id, bam, summary_txt, gene_bed, bai]
     }
     deletion_results = DELETION_CHECK(deletion_check_input)
+
+    //Run COVERAGE_PLOT module
+    //COVERAGE_PLOT needs: (sample_id, bam, bai, gene_bed)
+    //Combine BAM from BWA_MEM2 and the gene bed
+    coverage_plot_input = aligned_bam.map { sample_id, bam, bai ->
+        tuple(sample_id, bam, bai, file(params.gene_bed), file(params.reference))
+    }
+
+    COVERAGE_PLOT(coverage_plot_input)
 
 }
