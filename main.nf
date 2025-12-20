@@ -2,36 +2,32 @@ nextflow.enable.dsl=2
 
 // Import modules
 include { FASTP } from './modules/fastp.nf'
+include { APPEND_MARKER } from './modules/append_marker.nf'
 include { BWA_MEM2 } from './modules/bwa_mem2.nf'
 include { MOSDEPTH } from './modules/mosdepth.nf'
 include { DELETION_CHECK } from './modules/deletion_check.nf'
 include { COVERAGE_PLOT } from './modules/coverage_plot.nf'
 
-// Workflow params
+// Workflow 
 workflow {
-
-    // Minimal input channel for one test sample
+    
     reads = Channel.fromFilePairs(params.reads)
-    reference = file('assets/testdata/ref.fasta')
-    gene_bed = file('assets/testdata/target_gene.bed')
-
-    // Echo initial inputs
-    reads.view { sample_id, files ->
-        "Sample: $sample_id\nReads: ${files.join(', ')}"
-    }
-
-    println "Reference genome: $reference"
-    println "Gene BED: $gene_bed"
+    reference = file(params.reference)
+    gene_bed = file(params.gene_bed)
+    marker_fasta = file(params.marker_fasta)
     
     // Run FASTP module
     FASTP(reads)
     
+    //Combine Reference with marker sequence for later marker detection
+    APPEND_MARKER(reference, marker_fasta)
+
     // Run BWA-MEM2 alignment (aligns, sorts, and indexes in one step)
     // BWA_MEM2 expects: (sample_id, r1, r2, reference) in a single tuple
     // Access the trimmed_reads output specifically, then map to add reference
-    trimmed_reads_with_ref = FASTP.out.trimmed_reads.map { sample_id, r1, r2 -> 
-        [sample_id, r1, r2, reference] 
-    }
+    trimmed_reads_with_ref = FASTP.out.trimmed_reads
+        .combine(APPEND_MARKER.out.combined_ref)
+    
     aligned_bam = BWA_MEM2(trimmed_reads_with_ref)
     
     // Run MOSDEPTH module
@@ -49,7 +45,7 @@ workflow {
     //COVERAGE_PLOT needs: (sample_id, bam, bai, gene_bed)
     //Combine BAM from BWA_MEM2 and the gene bed
     coverage_plot_input = aligned_bam.map { sample_id, bam, bai ->
-        tuple(sample_id, bam, bai, file(params.gene_bed), file(params.reference))
+        tuple(sample_id, bam, bai, gene_bed, reference)
     }
 
     COVERAGE_PLOT(coverage_plot_input)
