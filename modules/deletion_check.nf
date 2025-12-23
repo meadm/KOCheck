@@ -8,7 +8,7 @@ process DELETION_CHECK {
     tuple val(sample_id), path(bam), path(summary_txt), path(gene_bed), path(bai)
 
     output:
-    path "${sample_id}.deletion_check.csv"
+    tuple val(sample_id), path("${sample_id}.deletion_check.csv"), emit: deletion_csv
 
     script:
     """

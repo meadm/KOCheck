@@ -7,6 +7,7 @@ include { BWA_MEM2 } from './modules/bwa_mem2.nf'
 include { MOSDEPTH } from './modules/mosdepth.nf'
 include { DELETION_CHECK } from './modules/deletion_check.nf'
 include { COVERAGE_PLOT } from './modules/coverage_plot.nf'
+include { MARKER_CHECK } from './modules/marker_check.nf'
 
 // Workflow 
 workflow {
@@ -39,7 +40,8 @@ workflow {
     deletion_check_input = aligned_bam.join(coverage).map { sample_id, bam, bai, per_base, regions, summary_txt ->
         [sample_id, bam, summary_txt, gene_bed, bai]
     }
-    deletion_results = DELETION_CHECK(deletion_check_input)
+
+    DELETION_CHECK(deletion_check_input)
 
     //Run COVERAGE_PLOT module
     //COVERAGE_PLOT needs: (sample_id, bam, bai, gene_bed)
@@ -50,4 +52,9 @@ workflow {
 
     COVERAGE_PLOT(coverage_plot_input)
 
+    //Make input variable for MARKER_CHECK module
+    // Use join() instead of combine() to match samples 1-to-1
+    marker_check_input = deletion_check_input.join(DELETION_CHECK.out.deletion_csv)
+
+    MARKER_CHECK(marker_check_input)
 }

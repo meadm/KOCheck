@@ -9,7 +9,8 @@ process MARKER_CHECK {
           path(bam),
           path(summary_txt),
           path(gene_bed),
-          path(bai) 
+          path(bai),
+          path(deletion_csv) 
 
     output:
     path "${sample_id}.marker_check.csv"
@@ -21,7 +22,7 @@ process MARKER_CHECK {
     MARKER_CONTIG="${params.marker_contig}"
     FLANK=${params.flank}
     MIN_MAPQ=${params.min_mapq}
-    DELETION_CHECK=\$(awk -F',' 'NR==2 {print $2}' "${sample_id}.deletion_check.csv")
+    DELETION_CHECK=\$(awk -F',' 'NR==2 {print \$2}' "${deletion_csv}")
     
     # --------------------------------------------------
     # Read target gene coordinates
@@ -40,7 +41,7 @@ process MARKER_CHECK {
     # Genome-wide mean coverage (exclude marker + region rows)
     # --------------------------------------------------
     genome_mean=\$(awk '
-        \$1 !~ /_region/ && \$1 != "'"$MARKER_CONTIG"'" {
+        \$1 !~ /_region/ && \$1 != "'"\$MARKER_CONTIG"'" {
             sum += \$4; n++
         }
         END {
@@ -52,7 +53,7 @@ process MARKER_CHECK {
     # --------------------------------------------------
     # Marker mean coverage
     # --------------------------------------------------
-    marker_mean=\$(awk -v m="$MARKER_CONTIG" '
+    marker_mean=\$(awk -v m="\$MARKER_CONTIG" '
         \$1 == m { print \$4 }
     ' ${summary_txt})
 
@@ -82,17 +83,7 @@ process MARKER_CHECK {
     # --------------------------------------------------
     # Junction support score (paired-end mates)
     # --------------------------------------------------
-    junction_support=\$(samtools view ${bam} "$MARKER_CONTIG" | \\
-        awk -v chr="$chrom" \\
-            -v start=\$window_start \\
-            -v end=\$window_end \\
-            -v minq=\$MIN_MAPQ '
-        \$5 >= minq &&
-        \$7 == chr &&
-        \$8 >= start && \$8 <= end
-        { count++ }
-        END { print count+0 }
-    ')
+    junction_support=\$(samtools view ${bam} "\$MARKER_CONTIG" | awk -v chr="\$chrom" -v start=\$window_start -v end=\$window_end -v minq=\$MIN_MAPQ '\$5 >= minq && \$7 == chr && \$8 >= start && \$8 <= end { count++ } END { print count+0 }')
 
     # --------------------------------------------------
     # Final classification logic
@@ -100,16 +91,15 @@ process MARKER_CHECK {
     status=\$(awk \\
         -v present=\$marker_present \\
         -v del=\$DELETION_CHECK \\
-        -v copy="$marker_copy" \\
-        -v js=\$junction_support '
+        -v copy="\$marker_copy" '
         BEGIN {
-            if (present=="false" && del=="no")
+            if (present=="false" && del=="intact")
                 print "WT";
-            else if (present=="true" && del=="no")
+            else if (present=="true" && del=="intact")
                 print "WRONG_SITE";
-            else if (present=="true" && del=="yes" && copy=="1")
+            else if (present=="true" && del=="deleted" && copy=="1")
                 print "OK";
-            else if (present=="true" && copy==">1")
+            else if (present=="true" && del=="deleted" && copy==">1")
                 print "ECTOPIC";
             else
                 print "AMBIGUOUS";
@@ -119,10 +109,10 @@ process MARKER_CHECK {
     # --------------------------------------------------
     # Output CSV
     # --------------------------------------------------
-    echo "sample_id,marker_present,deletion_status,marker_copy,junction_support,status" \\
+    echo "sample_id,marker_present,deletion_status,marker_ratio,marker_copy,junction_support,status" \\
         > ${sample_id}.marker_check.csv
 
-    echo "${sample_id},\${marker_present},\${DELETION_CHECK},\${marker_copy},\${junction_support},\${status}" \\
+    echo "${sample_id},\${marker_present},\${DELETION_CHECK},\${marker_ratio},\${marker_copy},\${junction_support},\${status}" \\
         >> ${sample_id}.marker_check.csv
     """
 }
