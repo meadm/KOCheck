@@ -23,4 +23,3 @@ process APPEND_MARKER {
     samtools faidx reference_with_marker.fasta
     """
 }
-

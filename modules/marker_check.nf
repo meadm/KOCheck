@@ -88,21 +88,23 @@ process MARKER_CHECK {
     # --------------------------------------------------
     # Final classification logic
     # --------------------------------------------------
-    status=\$(awk \\
-        -v present=\$marker_present \\
-        -v del=\$DELETION_CHECK \\
-        -v copy="\$marker_copy" '
+    status=\$(awk -v present="\$marker_present" -v del="\$DELETION_CHECK" -v copy="\$marker_copy" -v support=\$junction_support '
         BEGIN {
-            if (present=="false" && del=="intact")
-                print "WT";
-            else if (present=="true" && del=="intact")
-                print "WRONG_SITE";
-            else if (present=="true" && del=="deleted" && copy=="1")
-                print "OK";
-            else if (present=="true" && del=="deleted" && copy==">1")
-                print "ECTOPIC";
-            else
-                print "AMBIGUOUS";
+            if (del == "intact") {
+                print "PRESENT"
+            } else if (present == "true" && del == "deleted" && copy == ">1") {
+                print "ABSENT_MULTICOPY"
+            } else if (present == "true" && del == "deleted" && copy == "1") {
+                if (support > 10) {
+                    print "ABSENT_SINGLE_STRONG"
+                } else if (support >= 3) {
+                    print "ABSENT_SINGLE_MODERATE"
+                } else {
+                    print "ABSENT_SINGLE_WEAK"
+                }
+            } else {
+                print "AMBIGUOUS"
+            }
         }
     ')
 
