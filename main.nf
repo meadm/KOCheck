@@ -8,6 +8,7 @@ include { MOSDEPTH } from './modules/mosdepth.nf'
 include { DELETION_CHECK } from './modules/deletion_check.nf'
 include { COVERAGE_PLOT } from './modules/coverage_plot.nf'
 include { MARKER_CHECK } from './modules/marker_check.nf'
+include { AGGREGATE_RESULTS } from './modules/aggregate_results.nf'
 
 // Workflow 
 workflow {
@@ -57,4 +58,12 @@ workflow {
     marker_check_input = deletion_check_input.join(DELETION_CHECK.out.deletion_csv)
 
     MARKER_CHECK(marker_check_input)
+
+    // Aggregate all results into summary CSV and HTML report
+    // Combine and collect all files
+    all_results = MARKER_CHECK.out
+        .concat(COVERAGE_PLOT.out)
+        .toList()
+    
+    AGGREGATE_RESULTS(all_results)
 }
