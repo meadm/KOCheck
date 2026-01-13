@@ -10,6 +10,7 @@ A reproducible Nextflow pipeline for validating genetic knockouts. KOCheck analy
 - **Ectopic Integration Detection**: Identifies off-target marker insertions using junction support analysis
 - **Coverage Visualization**: Generates coverage plots for the target gene region
 - **Comprehensive Reporting**: CSV outputs for deletion status and marker presence
+- **Summary Reports**: Aggregated CSV and interactive HTML report with all sample results and embedded coverage plots
 
 ## Requirements
 
@@ -85,6 +86,7 @@ The pipeline consists of the following steps:
 5. **DELETION_CHECK**: Classifies target gene as `deleted`, `intact`, or `ambiguous` based on coverage ratios
 6. **COVERAGE_PLOT**: Generates visualization of coverage across the target gene region
 7. **MARKER_CHECK**: Validates marker presence, estimates copy number, and detects ectopic integrations
+8. **AGGREGATE_RESULTS**: Combines all sample results into a single CSV summary and generates an interactive HTML report
 
 ## Output Files
 
@@ -101,6 +103,9 @@ Results are organized in the `results/` directory (or custom `--outdir`):
   - Junction support score
   - Final classification status
 - `plots/`: Coverage plots for each sample showing the target gene region
+- `summary/`: Aggregated results including:
+  - `kocheck_summary.csv`: Combined CSV with all sample results
+  - `kocheck_report.html`: Interactive HTML report with summary statistics, sample table, and embedded coverage plots
 
 ### Marker Check Classifications
 
