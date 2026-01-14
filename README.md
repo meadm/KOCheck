@@ -22,7 +22,7 @@ A reproducible Nextflow pipeline for validating genetic knockouts. KOCheck analy
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/meadm/KOCheck
 cd KOCheck
 ```
 
