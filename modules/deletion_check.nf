@@ -32,6 +32,12 @@ process DELETION_CHECK {
         exit 1
     fi
 
+    # Convert BED coordinates (0-based, half-open) to samtools coordinates (1-based, inclusive)
+    # BED end is exclusive, so it's already the correct 1-based end
+    # BED start is 0-based, so add 1 for 1-based
+    samtools_start=\$(( start + 1 ))
+    samtools_end=\${end}
+
     ############################
     # Get mean coverage from the mosdepth summary of the chromosome defined in the chrom variable
     ############################
@@ -47,7 +53,7 @@ process DELETION_CHECK {
     # Compute mean gene coverage
     ############################
 
-    mean_gene_cov=\$(samtools depth -a -r "\$chrom:\$start-\$end" ${bam} | \
+    mean_gene_cov=\$(samtools depth -a -r "\$chrom:\${samtools_start}-\${samtools_end}" ${bam} | \
         awk '{sum+=\$3} END { if (NR>0) print sum/NR; else print 0 }')
     
     ############################

@@ -25,12 +25,19 @@ process MARKER_CHECK {
     DELETION_CHECK=\$(awk -F',' 'NR==2 {print \$2}' "${deletion_csv}")
     
     # --------------------------------------------------
-    # Read target gene coordinates
+    # Read target gene coordinates (BED format: 0-based, half-open)
     # --------------------------------------------------
     read chrom start end < ${gene_bed}
 
-    window_start=\$(( start - FLANK ))
-    window_end=\$(( end + FLANK ))
+    # Convert BED coordinates to 1-based for samtools
+    # BED start is 0-based, so add 1 for 1-based
+    # BED end is exclusive, so it's already the correct 1-based end
+    samtools_start=\$(( start + 1 ))
+    samtools_end=\${end}
+
+    # Define window with flanking regions (work in 1-based coordinates)
+    window_start=\$(( samtools_start - FLANK ))
+    window_end=\$(( samtools_end + FLANK ))
 
     # Clamp start to >=1
     if [ \$window_start -lt 1 ]; then
