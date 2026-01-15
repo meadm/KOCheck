@@ -88,22 +88,17 @@ process MARKER_CHECK {
     # --------------------------------------------------
     # Final classification logic
     # --------------------------------------------------
+    # PASS: gene deleted, marker present in one copy, strong junction support (>10)
+    # FAIL: gene still present (intact)
+    # REVIEW: all other situations
     status=\$(awk -v present="\$marker_present" -v del="\$DELETION_CHECK" -v copy="\$marker_copy" -v support=\$junction_support '
         BEGIN {
             if (del == "intact") {
-                print "PRESENT"
-            } else if (present == "true" && del == "deleted" && copy == ">1") {
-                print "ABSENT_MULTICOPY"
-            } else if (present == "true" && del == "deleted" && copy == "1") {
-                if (support > 10) {
-                    print "ABSENT_SINGLE_STRONG"
-                } else if (support >= 3) {
-                    print "ABSENT_SINGLE_MODERATE"
-                } else {
-                    print "ABSENT_SINGLE_WEAK"
-                }
+                print "FAIL"
+            } else if (present == "true" && del == "deleted" && copy == "1" && support > 10) {
+                print "PASS"
             } else {
-                print "AMBIGUOUS"
+                print "REVIEW"
             }
         }
     ')
@@ -111,10 +106,10 @@ process MARKER_CHECK {
     # --------------------------------------------------
     # Output CSV
     # --------------------------------------------------
-    echo "sample_id,marker_present,deletion_status,marker_ratio,marker_copy,junction_support,status" \\
+    echo "sample_id,status,deletion_status,marker_present,marker_ratio,marker_copy,junction_support" \\
         > ${sample_id}.marker_check.csv
 
-    echo "${sample_id},\${marker_present},\${DELETION_CHECK},\${marker_ratio},\${marker_copy},\${junction_support},\${status}" \\
+    echo "${sample_id},\${status},\${DELETION_CHECK},\${marker_present},\${marker_ratio},\${marker_copy},\${junction_support}" \\
         >> ${sample_id}.marker_check.csv
     """
 }

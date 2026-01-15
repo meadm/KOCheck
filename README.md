@@ -107,16 +107,16 @@ Results are organized in the `results/` directory (or custom `--outdir`):
   - `kocheck_summary.csv`: Combined CSV with all sample results
   - `kocheck_report.html`: Interactive HTML report with summary statistics, sample table, and embedded coverage plots
 
-### Marker Check Classifications
+### Overall Status Classifications
 
 The marker check module classifies samples into the following categories:
 
-- `PRESENT`: Gene is intact (marker should not be present but is not specifically confirmed)
-- `ABSENT_SINGLE_STRONG`: Gene deleted, single-copy marker with strong junction support (>10) for being in desired locus
-- `ABSENT_SINGLE_MODERATE`: Gene deleted, single-copy marker with moderate junction support (3-10)
-- `ABSENT_SINGLE_WEAK`: Gene deleted, single-copy marker with weak junction support (<3)
-- `ABSENT_MULTICOPY`: Gene deleted, but marker appears in multiple copies (likely ectopic)
-- `AMBIGUOUS`: Classification unclear based on available evidence
+- `PASS`: Successful knockout - gene deleted, marker present in one copy, and strong junction support (>10)
+- `FAIL`: Failed knockout - gene is still present (intact)
+- `REVIEW`: Requires manual review - includes cases with:
+  - Gene deleted but marker in multiple copies (including tandem insertions and/or ectopic integrations)
+  - Gene deleted with single-copy marker but weak/moderate junction support
+  - Other ambiguous situations where classification is unclear
 
 ## Configuration
 

@@ -22,7 +22,7 @@ import sys
 import glob
 from pathlib import Path
 
-# Read all marker check CSV files
+# Read all marker_check module output CSV files
 csv_files = sorted(glob.glob("*.marker_check.csv"))
 if not csv_files:
     print("ERROR: No marker_check CSV files found", file=sys.stderr)
@@ -38,6 +38,10 @@ combined_df = pd.concat(dfs, ignore_index=True)
 
 # Sort by sample_id
 combined_df = combined_df.sort_values('sample_id').reset_index(drop=True)
+
+# Reorder columns: sample_id, status, deletion_status, marker_present, marker_ratio, marker_copy, junction_support
+column_order = ['sample_id', 'status', 'deletion_status', 'marker_present', 'marker_ratio', 'marker_copy', 'junction_support']
+combined_df = combined_df[column_order]
 
 # Write combined CSV
 combined_df.to_csv("kocheck_summary.csv", index=False)
@@ -91,34 +95,19 @@ html_content.append('''<!DOCTYPE html>
         tr:hover {
             background-color: #f8f9fa;
         }
-        .status-PRESENT {
-            background-color: #fff3cd;
-            color: #856404;
-            font-weight: bold;
-        }
-        .status-ABSENT_SINGLE_STRONG {
+        .status-PASS {
             background-color: #d4edda;
             color: #155724;
             font-weight: bold;
         }
-        .status-ABSENT_SINGLE_MODERATE {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            font-weight: bold;
-        }
-        .status-ABSENT_SINGLE_WEAK {
-            background-color: #fff3cd;
-            color: #856404;
-            font-weight: bold;
-        }
-        .status-ABSENT_MULTICOPY {
+        .status-FAIL {
             background-color: #f8d7da;
             color: #721c24;
             font-weight: bold;
         }
-        .status-AMBIGUOUS {
-            background-color: #e2e3e5;
-            color: #383d41;
+        .status-REVIEW {
+            background-color: #fff3cd;
+            color: #856404;
             font-weight: bold;
         }
         .deleted {
@@ -185,6 +174,9 @@ total_samples = len(combined_df)
 status_counts = combined_df['status'].value_counts()
 deletion_counts = combined_df['deletion_status'].value_counts()
 
+# Define the order for status display
+status_order = ['PASS', 'REVIEW', 'FAIL']
+
 html_content.append('''        <div class="summary-stats">
             <div class="stat-box">
                 <h3>Total Samples</h3>
@@ -192,12 +184,15 @@ html_content.append('''        <div class="summary-stats">
             </div>
 '''.format(total_samples))
 
-for status, count in status_counts.items():
-    html_content.append('''            <div class="stat-box">
+# Display status counts in specified order
+for status in status_order:
+    if status in status_counts:
+        count = status_counts[status]
+        html_content.append('''            <div class="stat-box">
                 <h3>{}</h3>
                 <p>{}</p>
             </div>
-'''.format(status.replace('_', ' '), count))
+'''.format(status, count))
 
 html_content.append('''        </div>
 ''')
@@ -208,12 +203,12 @@ html_content.append('''        <h2>Sample Summary</h2>
             <thead>
                 <tr>
                     <th>Sample ID</th>
+                    <th>Overall Status</th>
                     <th>Deletion Status</th>
                     <th>Marker Present</th>
-                    <th>Marker Copy</th>
                     <th>Marker Ratio</th>
+                    <th>Marker Copy</th>
                     <th>Junction Support</th>
-                    <th>Final Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -234,12 +229,12 @@ for _, row in combined_df.iterrows():
     
     html_content.append(f'''                <tr>
                     <td><strong>{sample_id}</strong></td>
+                    <td class="{status_class}">{status}</td>
                     <td class="{deletion_class}">{deletion_status}</td>
                     <td>{marker_present}</td>
-                    <td>{marker_copy}</td>
                     <td>{marker_ratio}</td>
+                    <td>{marker_copy}</td>
                     <td>{junction_support}</td>
-                    <td class="{status_class}">{status.replace('_', ' ')}</td>
                 </tr>
 ''')
 
