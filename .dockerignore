@@ -1,0 +1,38 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+
+# Results and working directories
+results/
+work/
+.nextflow/
+
+# Cache and temporary files
+.cache
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.sublime-project
+
+# Test results
+.pytest_cache/
+htmlcov/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
