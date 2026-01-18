@@ -11,6 +11,7 @@ docs/
 results/
 work/
 .nextflow/
+.nextflow*
 
 # Cache and temporary files
 .cache

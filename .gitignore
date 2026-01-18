@@ -4,7 +4,7 @@
 # Nextflow
 .nextflow*
 work/
-results/
+results*
 reports/
 assets/**/pieces
 
@@ -12,6 +12,9 @@ assets/**/pieces
 __pycache__/
 *.py[codz]
 *$py.class
+
+# MacOS
+.DS_Store
 
 # C extensions
 *.so

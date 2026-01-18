@@ -1,27 +1,39 @@
-FROM ubuntu:22.04
+# Build stage - compile and prepare everything
+FROM eclipse-temurin:17-jdk-jammy as builder
 
-# Set working directory
-WORKDIR /home/kocheck
+WORKDIR /build
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install only build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    wget \
-    git \
-    openjdk-11-jre-headless \
-    python3 \
-    python3-pip \
-    samtools \
-    bwa \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Nextflow
+# Install Nextflow in builder stage
 RUN curl -s https://get.nextflow.io | bash && \
     mv nextflow /usr/local/bin/ && \
     chmod +x /usr/local/bin/nextflow
 
-# Install Python wrapper dependencies
-RUN pip3 install --no-cache-dir \
+# Runtime stage - minimal image
+FROM eclipse-temurin:17-jre-jammy
+
+WORKDIR /home/kocheck
+
+# Install only runtime dependencies (jre instead of jdk, --no-install-recommends to skip extras)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    samtools \
+    bwa \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* /var/tmp/*
+
+# Copy Nextflow from builder
+COPY --from=builder /usr/local/bin/nextflow /usr/local/bin/nextflow
+
+# Install Python wrapper dependencies with minimal cache
+RUN pip3 install --no-cache-dir --no-deps \
     pillow \
     matplotlib
 

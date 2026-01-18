@@ -49,6 +49,7 @@ class KOCheckGUI:
         self.intact_ratio = tk.StringVar(value="0.5")
         self.flank = tk.StringVar(value="500")
         self.min_mapq = tk.StringVar(value="20")
+        self.resume = tk.BooleanVar(value=False)
         
         self.setup_ui()
         
@@ -132,6 +133,12 @@ class KOCheckGUI:
         ttk.Entry(optional_frame, textvariable=self.min_mapq, width=30).grid(row=5, column=1, sticky=tk.W, padx=5)
         ttk.Label(optional_frame, text="(default: 20)", font=("Arial", 8, "italic")).grid(row=5, column=2, sticky=tk.W)
         
+        # Resume previous run
+        ttk.Checkbutton(optional_frame, text="Resume from previous run (use cached results)", 
+                        variable=self.resume).grid(row=6, column=0, columnspan=3, sticky=tk.W, pady=10)
+        ttk.Label(optional_frame, text="Enable to use Nextflow's caching and skip completed steps", 
+                  font=("Arial", 8, "italic")).grid(row=7, column=0, columnspan=3, sticky=tk.W)
+        
         # Pack scrollbar and canvas
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
@@ -197,6 +204,7 @@ class KOCheckGUI:
         self.intact_ratio.set("0.5")
         self.flank.set("500")
         self.min_mapq.set("20")
+        self.resume.set(False)
         self.output_text.delete(1.0, tk.END)
     
     def validate_inputs(self):
@@ -242,6 +250,10 @@ class KOCheckGUI:
             f"--min_mapq {self.min_mapq.get()}"
         ]
         
+        # Add -resume flag if checked
+        if self.resume.get():
+            cmd.insert(2, "-resume")
+        
         # Run in a separate thread to prevent GUI freezing
         thread = threading.Thread(target=self.execute_pipeline, args=(cmd,))
         thread.daemon = True
@@ -276,11 +288,19 @@ class KOCheckGUI:
             process.wait()
             
             if process.returncode == 0:
-                self.output_text.insert(tk.END, "\n✓ Pipeline completed successfully!\n")
-                messagebox.showinfo("Success", "Pipeline completed successfully!")
+                self.output_text.insert(tk.END, "\n" + "="*60 + "\n")
+                self.output_text.insert(tk.END, "✓ Pipeline completed successfully!\n")
+                self.output_text.insert(tk.END, "="*60 + "\n")
+                self.output_text.see(tk.END)
+                self.root.update()
+                messagebox.showinfo("Success", "Pipeline completed successfully!\n\nResults are ready in the output directory.")
             else:
-                self.output_text.insert(tk.END, f"\n✗ Pipeline failed with error code {process.returncode}\n")
-                messagebox.showerror("Error", f"Pipeline failed with error code {process.returncode}")
+                self.output_text.insert(tk.END, "\n" + "="*60 + "\n")
+                self.output_text.insert(tk.END, f"✗ Pipeline failed with error code {process.returncode}\n")
+                self.output_text.insert(tk.END, "="*60 + "\n")
+                self.output_text.see(tk.END)
+                self.root.update()
+                messagebox.showerror("Pipeline Error", f"Pipeline failed with error code {process.returncode}\n\nCheck the output above for details.")
                 
         except Exception as e:
             error_msg = f"Error running pipeline: {str(e)}\n"
