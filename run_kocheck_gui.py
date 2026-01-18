@@ -32,6 +32,64 @@ def check_dependencies():
     
     return issues
 
+class ToolTip:
+    """Create a tooltip for a given widget"""
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tooltip = None
+        widget.bind("<Enter>", self.enter)
+        widget.bind("<Leave>", self.leave)
+    
+    def enter(self, event=None):
+        if self.tooltip:
+            return
+        x = self.widget.winfo_rootx() + self.widget.winfo_width()
+        y = self.widget.winfo_rooty()
+        self.tooltip = tk.Toplevel(self.widget)
+        self.tooltip.wm_overrideredirect(True)
+        self.tooltip.wm_geometry(f"+{x}+{y}")
+        label = tk.Label(self.tooltip, text=self.text, background="#ffffe0", 
+                        relief=tk.SOLID, borderwidth=1, font=("Arial", 10))
+        label.pack()
+    
+    def leave(self, event=None):
+        if self.tooltip:
+            self.tooltip.destroy()
+            self.tooltip = None
+
+class PlaceholderEntry(ttk.Entry):
+    """Entry widget with placeholder text that disappears on focus"""
+    def __init__(self, parent, placeholder="", *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        self.placeholder = placeholder
+        self.placeholder_active = False
+        self.default_color = self["foreground"]
+        
+        self.bind("<FocusIn>", self._on_focus_in)
+        self.bind("<FocusOut>", self._on_focus_out)
+        
+        self._show_placeholder()
+    
+    def _show_placeholder(self):
+        """Display placeholder text"""
+        if not self.get():
+            self.placeholder_active = True
+            self.insert(0, self.placeholder)
+            self.config(foreground="gray")
+    
+    def _on_focus_in(self, event=None):
+        """Remove placeholder when entry gains focus"""
+        if self.placeholder_active:
+            self.delete(0, tk.END)
+            self.config(foreground=self.default_color)
+            self.placeholder_active = False
+    
+    def _on_focus_out(self, event=None):
+        """Restore placeholder if entry is empty"""
+        if not self.get():
+            self._show_placeholder()
+
 class KOCheckGUI:
     def __init__(self, root):
         self.root = root
@@ -56,7 +114,7 @@ class KOCheckGUI:
     def setup_ui(self):
         """Create the GUI layout"""
         # Title
-        title_label = ttk.Label(self.root, text="KOCheck Pipeline", font=("Arial", 16, "bold"))
+        title_label = ttk.Label(self.root, text="KOCheck ✅", font=("Arial", 16, "bold"))
         title_label.pack(pady=10)
         
         # Create main frame with scrollbar
@@ -81,63 +139,82 @@ class KOCheckGUI:
         required_frame.pack(fill=tk.X, pady=10)
         
         # Reads pattern
-        ttk.Label(required_frame, text="FASTQ Files Pattern:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        ttk.Entry(required_frame, textvariable=self.reads_pattern, width=50).grid(row=0, column=1, padx=5)
+        reads_label = ttk.Label(required_frame, text="FASTQ Files Pattern:")
+        reads_label.grid(row=0, column=0, sticky=tk.W, pady=5)
+        ToolTip(reads_label, "Glob pattern to your paired-end FASTQ files")
+        PlaceholderEntry(required_frame, placeholder="path/to/*_{R1,R2}.fq.gz", textvariable=self.reads_pattern, width=50).grid(row=0, column=1, padx=5)
         ttk.Button(required_frame, text="Browse", command=lambda: self.browse_pattern("reads")).grid(row=0, column=2)
-        ttk.Label(required_frame, text="e.g., data/*_{R1,R2}.fq.gz", font=("Arial", 8, "italic")).grid(row=1, column=1, sticky=tk.W)
         
         # Reference genome
-        ttk.Label(required_frame, text="Reference Genome:").grid(row=2, column=0, sticky=tk.W, pady=5)
-        ttk.Entry(required_frame, textvariable=self.reference_file, width=50).grid(row=2, column=1, padx=5)
+        ref_label = ttk.Label(required_frame, text="Reference Genome:")
+        ref_label.grid(row=2, column=0, sticky=tk.W, pady=5)
+        ToolTip(ref_label, "FASTA file of reference genome used as alignment target")
+        PlaceholderEntry(required_frame, placeholder="path/to/reference.fasta", textvariable=self.reference_file, width=50).grid(row=2, column=1, padx=5)
         ttk.Button(required_frame, text="Browse", command=lambda: self.browse_file("reference")).grid(row=2, column=2)
         
         # Gene BED file
-        ttk.Label(required_frame, text="Target Gene BED:").grid(row=3, column=0, sticky=tk.W, pady=5)
-        ttk.Entry(required_frame, textvariable=self.gene_bed_file, width=50).grid(row=3, column=1, padx=5)
+        bed_label = ttk.Label(required_frame, text="Target Gene BED:")
+        bed_label.grid(row=3, column=0, sticky=tk.W, pady=5)
+        ToolTip(bed_label, "Single-line BED file with target gene coordinates (format: chromosome start end)")
+        PlaceholderEntry(required_frame, placeholder="path/to/target_gene.bed", textvariable=self.gene_bed_file, width=50).grid(row=3, column=1, padx=5)
         ttk.Button(required_frame, text="Browse", command=lambda: self.browse_file("bed")).grid(row=3, column=2)
-        ttk.Label(required_frame, text="(chrom start end format)", font=("Arial", 8, "italic")).grid(row=4, column=1, sticky=tk.W)
+        #ttk.Label(required_frame, text="(format: chromosome start end)", font=("Arial", 10, "italic")).grid(row=4, column=1, sticky=tk.W)
         
         # Marker FASTA file
-        ttk.Label(required_frame, text="Marker Sequence:").grid(row=5, column=0, sticky=tk.W, pady=5)
-        ttk.Entry(required_frame, textvariable=self.marker_fasta_file, width=50).grid(row=5, column=1, padx=5)
+        marker_label = ttk.Label(required_frame, text="Marker Sequence:")
+        marker_label.grid(row=5, column=0, sticky=tk.W, pady=5)
+        ToolTip(marker_label, "FASTA file with resistance marker sequence")
+        PlaceholderEntry(required_frame, placeholder="path/to/marker.fasta", textvariable=self.marker_fasta_file, width=50).grid(row=5, column=1, padx=5)
         ttk.Button(required_frame, text="Browse", command=lambda: self.browse_file("fasta")).grid(row=5, column=2)
         
         # Optional Parameters Section
         optional_frame = ttk.LabelFrame(scrollable_frame, text="Optional Parameters", padding=10)
         optional_frame.pack(fill=tk.X, pady=10)
         
+        # Resume previous run (moved to top)
+        resume_check = ttk.Checkbutton(optional_frame, text="Resume from previous run (use cached results)", 
+                        variable=self.resume)
+        resume_check.grid(row=0, column=0, columnspan=3, sticky=tk.W, pady=10)
+        ToolTip(resume_check, "Enable to use Nextflow's caching and skip previously completed steps")
+        
         # Marker contig name
-        ttk.Label(optional_frame, text="Marker Contig Name:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        ttk.Entry(optional_frame, textvariable=self.marker_contig, width=30).grid(row=0, column=1, sticky=tk.W, padx=5)
-        ttk.Label(optional_frame, text="(default: kanR)", font=("Arial", 8, "italic")).grid(row=0, column=2, sticky=tk.W)
+        marker_name_label = ttk.Label(optional_frame, text="Marker Contig Name:")
+        marker_name_label.grid(row=1, column=0, sticky=tk.W, pady=5)
+        ToolTip(marker_name_label, "Name/ID of marker contig in the marker file (default: kanR)")
+        PlaceholderEntry(optional_frame, placeholder="kanR", textvariable=self.marker_contig, width=30).grid(row=1, column=1, sticky=tk.W, padx=5)
+        ttk.Label(optional_frame, text="(default: kanR)", font=("Arial", 12, "italic")).grid(row=1, column=2, sticky=tk.W)
         
         # Output directory
-        ttk.Label(optional_frame, text="Output Directory:").grid(row=1, column=0, sticky=tk.W, pady=5)
-        ttk.Entry(optional_frame, textvariable=self.output_dir, width=30).grid(row=1, column=1, sticky=tk.W, padx=5)
-        ttk.Button(optional_frame, text="Browse", command=lambda: self.browse_directory()).grid(row=1, column=2)
+        output_label = ttk.Label(optional_frame, text="Output Directory:")
+        output_label.grid(row=2, column=0, sticky=tk.W, pady=5)
+        ToolTip(output_label, "Directory where pipeline results will be saved")
+        PlaceholderEntry(optional_frame, placeholder="./results", textvariable=self.output_dir, width=30).grid(row=2, column=1, sticky=tk.W, padx=5)
+        ttk.Button(optional_frame, text="Browse", command=lambda: self.browse_directory()).grid(row=2, column=2)
         
         # Thresholds
-        ttk.Label(optional_frame, text="Deletion Ratio Threshold:").grid(row=2, column=0, sticky=tk.W, pady=5)
-        ttk.Entry(optional_frame, textvariable=self.delete_ratio, width=30).grid(row=2, column=1, sticky=tk.W, padx=5)
-        ttk.Label(optional_frame, text="(default: 0.1)", font=("Arial", 8, "italic")).grid(row=2, column=2, sticky=tk.W)
+        delete_ratio_label = ttk.Label(optional_frame, text="Deletion Ratio Threshold:")
+        delete_ratio_label.grid(row=3, column=0, sticky=tk.W, pady=5)
+        ToolTip(delete_ratio_label, "Coverage threshold for deletion classification (default: 0.1)")
+        PlaceholderEntry(optional_frame, placeholder="0.1", textvariable=self.delete_ratio, width=30).grid(row=3, column=1, sticky=tk.W, padx=5)
+        ttk.Label(optional_frame, text="(default: 0.1)", font=("Arial", 12, "italic")).grid(row=3, column=2, sticky=tk.W)
         
-        ttk.Label(optional_frame, text="Intact Ratio Threshold:").grid(row=3, column=0, sticky=tk.W, pady=5)
-        ttk.Entry(optional_frame, textvariable=self.intact_ratio, width=30).grid(row=3, column=1, sticky=tk.W, padx=5)
-        ttk.Label(optional_frame, text="(default: 0.5)", font=("Arial", 8, "italic")).grid(row=3, column=2, sticky=tk.W)
+        ttk.Label(optional_frame, text="Intact Ratio Threshold:").grid(row=4, column=0, sticky=tk.W, pady=5)
+        PlaceholderEntry(optional_frame, placeholder="0.5", textvariable=self.intact_ratio, width=30).grid(row=4, column=1, sticky=tk.W, padx=5)
+        ttk.Label(optional_frame, text="(default: 0.5)", font=("Arial", 12, "italic")).grid(row=4, column=2, sticky=tk.W)
+        intact_ratio_label = ttk.Label(optional_frame, text="Intact Ratio Threshold:")
+        ToolTip(intact_ratio_label, "Coverage threshold for intact gene classification (default: 0.5)")
         
-        ttk.Label(optional_frame, text="Flank Region (bp):").grid(row=4, column=0, sticky=tk.W, pady=5)
-        ttk.Entry(optional_frame, textvariable=self.flank, width=30).grid(row=4, column=1, sticky=tk.W, padx=5)
-        ttk.Label(optional_frame, text="(default: 500)", font=("Arial", 8, "italic")).grid(row=4, column=2, sticky=tk.W)
+        ttk.Label(optional_frame, text="Flank Region (bp):").grid(row=5, column=0, sticky=tk.W, pady=5)
+        PlaceholderEntry(optional_frame, placeholder="500", textvariable=self.flank, width=30).grid(row=5, column=1, sticky=tk.W, padx=5)
+        ttk.Label(optional_frame, text="(default: 500)", font=("Arial", 12, "italic")).grid(row=5, column=2, sticky=tk.W)
+        flank_label = ttk.Label(optional_frame, text="Flank Region (bp):")
+        ToolTip(flank_label, "Flanking region in bp for visualization and analysis (default: 500)")
         
-        ttk.Label(optional_frame, text="Minimum Mapping Quality:").grid(row=5, column=0, sticky=tk.W, pady=5)
-        ttk.Entry(optional_frame, textvariable=self.min_mapq, width=30).grid(row=5, column=1, sticky=tk.W, padx=5)
-        ttk.Label(optional_frame, text="(default: 20)", font=("Arial", 8, "italic")).grid(row=5, column=2, sticky=tk.W)
-        
-        # Resume previous run
-        ttk.Checkbutton(optional_frame, text="Resume from previous run (use cached results)", 
-                        variable=self.resume).grid(row=6, column=0, columnspan=3, sticky=tk.W, pady=10)
-        ttk.Label(optional_frame, text="Enable to use Nextflow's caching and skip completed steps", 
-                  font=("Arial", 8, "italic")).grid(row=7, column=0, columnspan=3, sticky=tk.W)
+        ttk.Label(optional_frame, text="Minimum Mapping Quality:").grid(row=6, column=0, sticky=tk.W, pady=5)
+        PlaceholderEntry(optional_frame, placeholder="20", textvariable=self.min_mapq, width=30).grid(row=6, column=1, sticky=tk.W, padx=5)
+        ttk.Label(optional_frame, text="(default: 20)", font=("Arial", 12, "italic")).grid(row=6, column=2, sticky=tk.W)
+        mapq_label = ttk.Label(optional_frame, text="Minimum Mapping Quality:")
+        ToolTip(mapq_label, "Minimum mapping quality for junction analysis (default: 20)")
         
         # Pack scrollbar and canvas
         canvas.pack(side="left", fill="both", expand=True)
