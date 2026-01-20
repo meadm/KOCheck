@@ -2,6 +2,8 @@ process APPEND_MARKER {
 
     tag "append_marker"
 
+    label 'samtools'
+
     publishDir "${params.outdir}/append_marker", mode: 'copy'
 
     input:

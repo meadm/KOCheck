@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 KOCheck GUI Wrapper
-A simple graphical interface for running the KOCheck Nextflow pipeline
+A simple graphical interface for running the KOCheck Nextflow pipeline inside Docker
 """
 
 import tkinter as tk
@@ -12,23 +12,16 @@ import sys
 from pathlib import Path
 import threading
 import shutil
+import json
 
 def check_dependencies():
-    """Check for required dependencies (Nextflow, Docker or Conda)"""
+    """Check for required dependencies (Docker)"""
     issues = []
     
-    # Check for Nextflow
-    if shutil.which("nextflow") is None:
-        issues.append("Nextflow is not installed. Install from: https://www.nextflow.io/")
-    
-    # Check for Docker or Conda
-    has_docker = shutil.which("docker") is not None
-    has_conda = shutil.which("conda") is not None
-    
-    if not has_docker and not has_conda:
-        issues.append("Neither Docker nor Conda is installed.\nPlease install one:")
-        issues.append("  • Docker: https://www.docker.com/get-started")
-        issues.append("  • Conda: https://docs.conda.io/en/latest/miniconda.html")
+    # Check for Docker
+    if shutil.which("docker") is None:
+        issues.append("Docker is not installed or not in PATH.")
+        issues.append("Please install Docker from: https://www.docker.com/get-started")
     
     return issues
 
@@ -65,6 +58,7 @@ class PlaceholderEntry(ttk.Entry):
         self.placeholder = placeholder
         self.placeholder_active = False
         self.default_color = self["foreground"]
+        self.placeholder_color = "gray"
         
         self.bind("<FocusIn>", self._on_focus_in)
         self.bind("<FocusOut>", self._on_focus_out)
@@ -73,22 +67,30 @@ class PlaceholderEntry(ttk.Entry):
     
     def _show_placeholder(self):
         """Display placeholder text"""
-        if not self.get():
+        if not super().get():
             self.placeholder_active = True
-            self.insert(0, self.placeholder)
-            self.config(foreground="gray")
+            super().insert(0, self.placeholder)
+            self.config(foreground=self.placeholder_color)
     
     def _on_focus_in(self, event=None):
         """Remove placeholder when entry gains focus"""
         if self.placeholder_active:
-            self.delete(0, tk.END)
+            super().delete(0, tk.END)
             self.config(foreground=self.default_color)
             self.placeholder_active = False
     
     def _on_focus_out(self, event=None):
         """Restore placeholder if entry is empty"""
-        if not self.get():
+        if not super().get():
             self._show_placeholder()
+    
+    def get(self):
+        """Override get() to return actual value, not placeholder"""
+        value = super().get()
+        # If placeholder is showing, return empty string instead
+        if self.placeholder_active or value == self.placeholder:
+            return ""
+        return value
 
 class KOCheckGUI:
     def __init__(self, root):
@@ -107,6 +109,8 @@ class KOCheckGUI:
         self.intact_ratio = tk.StringVar(value="0.5")
         self.flank = tk.StringVar(value="500")
         self.min_mapq = tk.StringVar(value="20")
+        self.memory = tk.StringVar(value="8")  # in GB
+        self.cpus = tk.StringVar(value="4")
         self.resume = tk.BooleanVar(value=False)
         
         self.setup_ui()
@@ -187,7 +191,7 @@ class KOCheckGUI:
         # Output directory
         output_label = ttk.Label(optional_frame, text="Output Directory:")
         output_label.grid(row=2, column=0, sticky=tk.W, pady=5)
-        ToolTip(output_label, "Directory where pipeline results will be saved")
+        ToolTip(output_label, "Directory where pipeline results will be saved (default: results)")
         PlaceholderEntry(optional_frame, placeholder="./results", textvariable=self.output_dir, width=30).grid(row=2, column=1, sticky=tk.W, padx=5)
         ttk.Button(optional_frame, text="Browse", command=lambda: self.browse_directory()).grid(row=2, column=2)
         
@@ -202,19 +206,35 @@ class KOCheckGUI:
         PlaceholderEntry(optional_frame, placeholder="0.5", textvariable=self.intact_ratio, width=30).grid(row=4, column=1, sticky=tk.W, padx=5)
         ttk.Label(optional_frame, text="(default: 0.5)", font=("Arial", 12, "italic")).grid(row=4, column=2, sticky=tk.W)
         intact_ratio_label = ttk.Label(optional_frame, text="Intact Ratio Threshold:")
+        intact_ratio_label.grid(row=4, column=0, sticky=tk.W, pady=5)
         ToolTip(intact_ratio_label, "Coverage threshold for intact gene classification (default: 0.5)")
         
         ttk.Label(optional_frame, text="Flank Region (bp):").grid(row=5, column=0, sticky=tk.W, pady=5)
         PlaceholderEntry(optional_frame, placeholder="500", textvariable=self.flank, width=30).grid(row=5, column=1, sticky=tk.W, padx=5)
         ttk.Label(optional_frame, text="(default: 500)", font=("Arial", 12, "italic")).grid(row=5, column=2, sticky=tk.W)
         flank_label = ttk.Label(optional_frame, text="Flank Region (bp):")
+        flank_label.grid(row=5, column=0, sticky=tk.W, pady=5)
         ToolTip(flank_label, "Flanking region in bp for visualization and analysis (default: 500)")
         
         ttk.Label(optional_frame, text="Minimum Mapping Quality:").grid(row=6, column=0, sticky=tk.W, pady=5)
         PlaceholderEntry(optional_frame, placeholder="20", textvariable=self.min_mapq, width=30).grid(row=6, column=1, sticky=tk.W, padx=5)
         ttk.Label(optional_frame, text="(default: 20)", font=("Arial", 12, "italic")).grid(row=6, column=2, sticky=tk.W)
         mapq_label = ttk.Label(optional_frame, text="Minimum Mapping Quality:")
+        mapq_label.grid(row=6, column=0, sticky=tk.W, pady=5)
         ToolTip(mapq_label, "Minimum mapping quality for junction analysis (default: 20)")
+        
+        # Resource allocation
+        memory_label = ttk.Label(optional_frame, text="Memory (GB):")
+        memory_label.grid(row=7, column=0, sticky=tk.W, pady=5)
+        ToolTip(memory_label, "Amount of RAM to allocate to Docker container (default: 8 GB)")
+        PlaceholderEntry(optional_frame, placeholder="8", textvariable=self.memory, width=30).grid(row=7, column=1, sticky=tk.W, padx=5)
+        ttk.Label(optional_frame, text="(default: 8 GB)", font=("Arial", 12, "italic")).grid(row=7, column=2, sticky=tk.W)
+        
+        cpus_label = ttk.Label(optional_frame, text="CPU Cores:")
+        cpus_label.grid(row=8, column=0, sticky=tk.W, pady=5)
+        ToolTip(cpus_label, "Number of CPU cores to allocate to Docker container (default: 4)")
+        PlaceholderEntry(optional_frame, placeholder="4", textvariable=self.cpus, width=30).grid(row=8, column=1, sticky=tk.W, padx=5)
+        ttk.Label(optional_frame, text="(default: 4 cores)", font=("Arial", 12, "italic")).grid(row=8, column=2, sticky=tk.W)
         
         # Pack scrollbar and canvas
         canvas.pack(side="left", fill="both", expand=True)
@@ -281,6 +301,8 @@ class KOCheckGUI:
         self.intact_ratio.set("0.5")
         self.flank.set("500")
         self.min_mapq.set("20")
+        self.memory.set("8")
+        self.cpus.set("4")
         self.resume.set(False)
         self.output_text.delete(1.0, tk.END)
     
@@ -301,54 +323,115 @@ class KOCheckGUI:
         return True
     
     def run_pipeline(self):
-        """Run the Nextflow pipeline"""
+        """Run the Nextflow pipeline inside Docker"""
         if not self.validate_inputs():
             return
         
-        # Check dependencies
+        # Check dependencies (Docker only)
         dep_issues = check_dependencies()
         if dep_issues:
             error_msg = "Missing dependencies:\n\n" + "\n".join(dep_issues)
             messagebox.showerror("Missing Dependencies", error_msg)
             return
         
-        # Build the nextflow command
-        cmd = [
-            "nextflow", "run", "main.nf",
-            f"--reads '{self.reads_pattern.get()}'",
-            f"--reference {self.reference_file.get()}",
-            f"--gene_bed {self.gene_bed_file.get()}",
-            f"--marker_fasta {self.marker_fasta_file.get()}",
-            f"--marker_contig {self.marker_contig.get()}",
-            f"--outdir {self.output_dir.get()}",
-            f"--delete_ratio {self.delete_ratio.get()}",
-            f"--intact_ratio {self.intact_ratio.get()}",
-            f"--flank {self.flank.get()}",
-            f"--min_mapq {self.min_mapq.get()}"
+        # Get absolute paths
+        reads_pattern_str = self.reads_pattern.get()
+        reference_file = os.path.abspath(self.reference_file.get())
+        gene_bed_file = os.path.abspath(self.gene_bed_file.get())
+        marker_fasta_file = os.path.abspath(self.marker_fasta_file.get())
+        
+        # Handle output directory - use "results" as default if empty
+        output_dir_input = self.output_dir.get()
+        if not output_dir_input:
+            output_dir_input = "results"
+        output_dir = os.path.abspath(output_dir_input)
+        
+        # For reads pattern, get the base directory (before the glob pattern)
+        # Pattern is typically: /path/to/data/*_{R1,R2}.fq.gz
+        reads_base_dir = os.path.dirname(reads_pattern_str)
+        if reads_base_dir.endswith('*') or '{' in reads_base_dir:
+            # If user provided a glob pattern, extract the base directory
+            reads_base_dir = os.path.dirname(reads_base_dir)
+        reads_base_dir = os.path.abspath(reads_base_dir)
+        
+        # Create output directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Get the directory containing this script (KOCheck root)
+        kocheck_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Debug output
+        print(f"DEBUG: output_dir_input = {output_dir_input}")
+        print(f"DEBUG: output_dir (absolute) = {output_dir}")
+        print(f"DEBUG: kocheck_dir = {kocheck_dir}")
+        
+        # Get memory and CPU values - use defaults if empty
+        memory_val = self.memory.get()
+        if not memory_val:
+            memory_val = "8"
+        cpus_val = self.cpus.get()
+        if not cpus_val:
+            cpus_val = "4"
+        
+        # Validate that memory and cpus are numeric
+        try:
+            memory_val = str(int(memory_val))
+            cpus_val = str(int(cpus_val))
+        except ValueError:
+            messagebox.showerror("Input Error", "Memory (GB) and CPU Cores must be numbers")
+            return
+        
+        # Build the docker run command as a single list (easier to debug)
+        docker_cmd = [
+            "docker", "run",
+            "--rm",
+            "-m", f"{memory_val}GB",  # Allocate memory from user input
+            "--cpus", cpus_val,  # Limit to user-specified CPUs
+            "-v", f"{kocheck_dir}:/workspace",
+            "-v", f"{reads_base_dir}:/input/reads",
+            "-v", f"{os.path.dirname(reference_file)}:/input/ref",
+            "-v", f"{os.path.dirname(gene_bed_file)}:/input/bed",
+            "-v", f"{os.path.dirname(marker_fasta_file)}:/input/marker",
+            "-v", f"{output_dir}:/output",
+            "-w", "/workspace",
+            "kocheck:latest",
+            "nextflow", "run", "main.nf", "-profile", "gui",
+            f"--reads=/input/reads/{os.path.basename(reads_pattern_str)}",
+            f"--reference=/input/ref/{os.path.basename(reference_file)}",
+            f"--gene_bed=/input/bed/{os.path.basename(gene_bed_file)}",
+            f"--marker_fasta=/input/marker/{os.path.basename(marker_fasta_file)}",
+            f"--marker_contig={self.marker_contig.get()}",
+            f"--outdir=/output",
+            f"--delete_ratio={self.delete_ratio.get()}",
+            f"--intact_ratio={self.intact_ratio.get()}",
+            f"--flank={self.flank.get()}",
+            f"--min_mapq={self.min_mapq.get()}"
         ]
         
         # Add -resume flag if checked
         if self.resume.get():
-            cmd.insert(2, "-resume")
+            docker_cmd.insert(docker_cmd.index("nextflow") + 2, "-resume")
         
         # Run in a separate thread to prevent GUI freezing
-        thread = threading.Thread(target=self.execute_pipeline, args=(cmd,))
+        thread = threading.Thread(target=self.execute_pipeline, args=(docker_cmd,))
         thread.daemon = True
         thread.start()
     
     def execute_pipeline(self, cmd):
-        """Execute the pipeline command"""
-        self.output_text.insert(tk.END, "Starting KOCheck pipeline...\n")
-        self.output_text.insert(tk.END, f"Command: {' '.join(cmd)}\n\n")
+        """Execute the pipeline command inside Docker"""
+        self.output_text.insert(tk.END, "Starting KOCheck pipeline inside Docker...\n\n")
+        self.output_text.insert(tk.END, "Full command:\n")
+        self.output_text.insert(tk.END, " ".join(cmd) + "\n\n")
+        self.output_text.insert(tk.END, "Pipeline output:\n")
+        self.output_text.insert(tk.END, "="*60 + "\n")
         self.output_text.see(tk.END)
         self.root.update()
         
         try:
-            # Join command into a single string for shell execution
-            cmd_str = " ".join(cmd)
+            # Use subprocess.run with the command as a list (safer than shell=True)
+            # This properly handles spaces and special characters in paths
             process = subprocess.Popen(
-                cmd_str,
-                shell=True,
+                cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 universal_newlines=True,

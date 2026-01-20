@@ -2,6 +2,8 @@ process MARKER_CHECK {
 
     tag "${sample_id}"
 
+    label 'samtools'
+
     publishDir "${params.outdir}/marker_check", mode: 'copy'
 
     input:
