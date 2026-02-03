@@ -76,8 +76,11 @@ RUN useradd -m -s /bin/bash kocheck
 # Copy KOCheck repository
 COPY --chown=kocheck:kocheck . /home/kocheck/
 
-# Set permissions
-RUN chmod -R 755 /home/kocheck
+# Create Nextflow directories and set proper permissions
+# Need to do this as root before switching to kocheck user
+RUN mkdir -p /home/kocheck/.nextflow /home/kocheck/work && \
+    chown -R kocheck:kocheck /home/kocheck && \
+    chmod -R u+w /home/kocheck
 
 # Switch to non-root user
 USER kocheck

@@ -2,6 +2,8 @@ process DELETION_CHECK {
 
     tag "${sample_id}"
 
+    label 'samtools'
+
     publishDir "${params.outdir}/deletion_check", mode: 'copy'
 
     input:

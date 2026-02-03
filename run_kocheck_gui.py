@@ -360,11 +360,6 @@ class KOCheckGUI:
         # Get the directory containing this script (KOCheck root)
         kocheck_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # Debug output
-        print(f"DEBUG: output_dir_input = {output_dir_input}")
-        print(f"DEBUG: output_dir (absolute) = {output_dir}")
-        print(f"DEBUG: kocheck_dir = {kocheck_dir}")
-        
         # Get memory and CPU values - use defaults if empty
         memory_val = self.memory.get()
         if not memory_val:
