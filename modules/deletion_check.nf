@@ -69,7 +69,7 @@ process DELETION_CHECK {
         'BEGIN { print (r < t) }')
 
     is_intact=\$(awk -v r="\$ratio" -v t="${params.intact_ratio}" \
-        'BEGIN { print (r > t) }')
+        'BEGIN { print (r >= t) }')
 
     if [ "\$is_deleted" -eq 1 ]; then
         status="deleted"

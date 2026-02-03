@@ -3,24 +3,33 @@
 ## Data Flow Diagram
 
 ```mermaid
-graph LR
-    A["📊 FASTQ Files<br/>(Paired-end reads)"] --> B["✂️ FASTP<br/>(QC & Trimming)"]
-    B --> C["🧬 BWA-MEM2<br/>(Alignment)"]
-    C --> D["📈 MOSDEPTH<br/>(Coverage Analysis)"]
+graph TD
+    A["📁 FASTQ Files<br/>(Paired-end reads)"] --> B["✂️ FASTP<br/>(QC & Trimming)"]
+    B --> C["🗺️ BWA-MEM2<br/>(Alignment)"]
+    C --> D["🔍 MOSDEPTH<br/>(Coverage Analysis)"]
     D --> E["🔍 DELETION_CHECK<br/>(Gene Coverage)"]
-    E --> F["🎯 MARKER_CHECK<br/>(Marker & Junctions)"]
-    F --> G["📊 COVERAGE_PLOT<br/>(Visualization)"]
+    E --> F["🔍 MARKER_CHECK<br/>(Marker & Junctions Analysis)"]
+    F --> G["📈 COVERAGE_PLOT<br/>(Visualization)"]
     G --> H["📋 AGGREGATE_RESULTS<br/>(Summary Report)"]
+    H --> H2["🎯 Final Classification<br/>(PASS / REVIEW / FAIL)"]
     
-    E -.-> E1["Coverage Ratio"]
-    F -.-> F1["Marker Present?<br/>Junction Support"]
-    H -.-> H1["Classification:<br/>WT / OK / WRONG_SITE<br/>ECTOPIC / AMBIGUOUS"]
+    B -.-> B1["📊 QC Reports<br/>(*.fastp.html/.json)"]
+    C -.-> C1["📦 BAM Files<br/>(*.bam, *.bam.bai)"]
+    D -.-> D1["📚 Coverage Files<br/>(*.mosdepth.summary.txt)"]
+    E -.-> E1["📚 deletion_status.csv<br/>(Coverage Ratio)"]
+    F -.-> F1["📚 marker_status.csv<br/>(Marker Present?<br/>Junction Support)"]
+    G -.-> G1["📈 Coverage Plots<br/>(*.coverage.png)"]
+    H -.-> H1["📚 summary.csv<br/>🖼️ summary.html"]
     
-    style A fill:#e1f5ff
-    style H fill:#c8e6c9
-    style H1 fill:#c8e6c9
-    style E1 fill:#fff9c4
-    style F1 fill:#fff9c4
+    style A fill:#1e88e5,color:#fff
+    style H2 fill:#00c853,color:#fff
+    style B1 fill:#ff6f00,color:#fff
+    style C1 fill:#ff6f00,color:#fff
+    style D1 fill:#ff6f00,color:#fff
+    style E1 fill:#ff6f00,color:#fff
+    style F1 fill:#ff6f00,color:#fff
+    style G1 fill:#ff6f00,color:#fff
+    style H1 fill:#ff6f00,color:#fff
 ```
 
 ## Processing Steps
