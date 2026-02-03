@@ -394,7 +394,7 @@ class KOCheckGUI:
             "-v", f"{os.path.dirname(marker_fasta_file)}:/input/marker",
             "-v", f"{output_dir}:/output",
             "-w", "/workspace",
-            "kocheck:latest",
+            "meadm/kocheck:latest",
             "nextflow", "run", "main.nf", "-profile", "gui",
             f"--reads=/input/reads/{os.path.basename(reads_pattern_str)}",
             f"--reference=/input/ref/{os.path.basename(reference_file)}",
