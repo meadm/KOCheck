@@ -107,4 +107,8 @@ results/
 
 ## Sample Classification Logic
 
-See `CLASSIFICATION_LOGIC.md` for detailed classification rules.
+The final classification assigns each sample one of three outcomes:
+
+- **✅ PASS** - Sample is missing gene of interest, the marker is present only in 1 copy, and there is good junction support for the marker being in the locus of interest
+- **❌ FAIL** - Sample possesses gene of interest
+- **❓ REVIEW** - All other cases - a manual review is necessary

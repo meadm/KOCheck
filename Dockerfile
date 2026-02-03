@@ -1,17 +1,13 @@
 # Build stage - compile and prepare everything
-FROM eclipse-temurin:17-jdk-jammy as builder
+FROM eclipse-temurin:17-jdk-jammy AS builder
 
 WORKDIR /build
 
-# Install base system dependencies
+# Install only build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
-    git \
     bzip2 \
-    build-essential \
-    python3 \
-    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Miniforge (ARM-safe)
@@ -25,13 +21,13 @@ RUN ARCH=$(uname -m) && \
     bash /tmp/miniforge.sh -b -p /opt/conda && \
     rm /tmp/miniforge.sh
 
-# Add conda/mamba to PATH
+# Add conda to PATH
 ENV PATH="/opt/conda/bin:${PATH}"
 
 # Update conda and install mamba
 RUN conda install -y mamba -n base -c conda-forge && conda clean -afy
 
-# Create single GUI environment with all KOCheck dependencies
+# Create kocheck environment with pinned versions
 RUN mamba create -y -n kocheck_env \
     -c conda-forge -c bioconda \
     --strict-channel-priority \
@@ -42,46 +38,54 @@ RUN mamba create -y -n kocheck_env \
     python=3.10 \
     pandas \
     matplotlib \
-    && mamba clean --all -y
+    && mamba clean --all -y && \
+    rm -rf /opt/conda/pkgs /opt/conda/share/doc /opt/conda/share/man
 
-# Install Nextflow in builder stage
+# Install Nextflow
 RUN curl -s https://get.nextflow.io | bash && \
     mv nextflow /usr/local/bin/ && \
     chmod +x /usr/local/bin/nextflow
 
-# Runtime stage - minimal image
+# Runtime stage - slim base
 FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /home/kocheck
 
+# Install only runtime dependencies (not build tools)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 # Copy Nextflow from builder
 COPY --from=builder /usr/local/bin/nextflow /usr/local/bin/nextflow
 
-# Copy other installed packages and tools from builder
-COPY --from=builder /opt/conda /opt/conda
+# Copy ONLY the kocheck_env (not all of /opt/conda)
+COPY --from=builder /opt/conda/envs/kocheck_env /opt/conda/envs/kocheck_env
 
-# Activate environment by default
+# Minimal conda setup - symlink binaries
+RUN mkdir -p /opt/conda/bin && \
+    ln -s /opt/conda/envs/kocheck_env/bin/* /opt/conda/bin/ 2>/dev/null || true
+
+# Activate environment
 ENV CONDA_DEFAULT_ENV=kocheck_env
-ENV PATH="/opt/conda/envs/kocheck_env/bin:${PATH}"
+ENV PATH="/opt/conda/envs/kocheck_env/bin:/opt/conda/bin:${PATH}"
 
-# Create a non-root user
+# Create non-root user
 RUN useradd -m -s /bin/bash kocheck
 
-# Copy the KOCheck repository
-COPY . /home/kocheck/
+# Copy KOCheck repository
+COPY --chown=kocheck:kocheck . /home/kocheck/
 
 # Set permissions
-RUN chown -R kocheck:kocheck /home/kocheck
+RUN chmod -R 755 /home/kocheck
 
 # Switch to non-root user
 USER kocheck
 
-# Set environment variables
+# Environment variables
 ENV PATH="/home/kocheck:${PATH}"
 ENV NXF_HOME="/home/kocheck/.nextflow"
 
-# Expose port for any web services
 EXPOSE 8080
 
-# Default command
 CMD ["/bin/bash"]
