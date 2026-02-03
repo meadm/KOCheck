@@ -42,14 +42,7 @@ RUN mamba create -y -n kocheck_env \
     python=3.10 \
     pandas \
     matplotlib \
-    && mamba clean -afy
-
-# Activate environment by default
-ENV CONDA_DEFAULT_ENV=kocheck_env
-ENV PATH="/opt/conda/envs/kocheck_env/bin:${PATH}"
-
-# Clean up conda and pip caches
-RUN mamba clean --all -y
+    && mamba clean --all -y
 
 # Install Nextflow in builder stage
 RUN curl -s https://get.nextflow.io | bash && \
@@ -67,9 +60,9 @@ COPY --from=builder /usr/local/bin/nextflow /usr/local/bin/nextflow
 # Copy other installed packages and tools from builder
 COPY --from=builder /opt/conda /opt/conda
 
-# Activate conda environment
+# Activate environment by default
 ENV CONDA_DEFAULT_ENV=kocheck_env
-ENV PATH="/opt/conda/envs/kocheck_env/bin:/opt/conda/bin:${PATH}"
+ENV PATH="/opt/conda/envs/kocheck_env/bin:${PATH}"
 
 # Create a non-root user
 RUN useradd -m -s /bin/bash kocheck
