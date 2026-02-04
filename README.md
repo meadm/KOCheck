@@ -18,15 +18,22 @@ A reproducible [Nextflow](https://www.nextflow.io/) pipeline for validating gene
 
 The easiest way to run KOCheck is using the graphical interface which is launched via a Python script and utilizes a Docker image. This method requires only [Docker](https://docs.docker.com/desktop/) and [Python](https://www.python.org/downloads/) to be installed on your system.
 
-1. **Clone the repo that contains the Python script and other pipeline materials:**
+1. **Download the GUI launcher**
+[Download run_kocheck_gui.py](https://raw.githubusercontent.com/meadm/KOCheck/main/run_kocheck_gui.py)
+
+2. **Make sure Docker is installed and running**
+In a terminal type:
 ```bash
-git clone https://github.com/meadm/KOCheck
+docker run hello-world
+```
+If Docker is working, you'll see a message starting with:
+```bash
+Hello from Docker!
 ```
 
-2. **Navigate inside the repo and run the GUI:**
+3. In a terminal run:
 ```bash
-cd KOCheck
-python run_kocheck_gui.py
+   python run_kocheck_gui.py
 ```
 
 The GUI will open in a new window where you can:
