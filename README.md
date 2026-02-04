@@ -1,10 +1,10 @@
-# KOCheck
+# KOCheck ✅
 
-A reproducible Nextflow pipeline for validating genetic knockouts. KOCheck analyzes Illumina sequencing reads to confirm gene deletions, detect correct resistance marker insertion, and identify ectopic integrations across the genome. Designed primarily for microbiological and fungal genetic workflows.
+A reproducible [Nextflow](https://www.nextflow.io/) pipeline for validating genetic knockouts. KOCheck analyzes short-read (Illumina) sequencing reads to confirm gene deletions, detect correct resistance marker insertion, and identify ectopic integrations across the genome. Designed primarily for microbiological and fungal genetic workflows.
 
 ## Features
 
-- **Quality Control**: Automatic adapter trimming and quality filtering with fastp
+- **Quality Control**: Automatic adapter trimming and quality filtering with [fastp](https://github.com/OpenGene/fastp)
 - **Deletion Detection**: Validates gene deletion by comparing target gene coverage to chromosomal mean
 - **Marker Validation**: Confirms presence and copy number of resistance marker
 - **Ectopic Integration Detection**: Identifies off-target marker insertions using junction support analysis
@@ -12,31 +12,90 @@ A reproducible Nextflow pipeline for validating genetic knockouts. KOCheck analy
 - **Comprehensive Reporting**: CSV outputs for deletion status and marker presence
 - **Summary Reports**: Aggregated CSV and interactive HTML report with all sample results and embedded coverage plots
 
-## Requirements
+## Quick Start (Easiest Method)
 
+**For users with minimal command-line experience:**
+
+The easiest way to run KOCheck is using the graphical interface which is launched via a Python script and utilizes a Docker image. This method requires only [Docker](https://docs.docker.com/desktop/) and [Python](https://www.python.org/downloads/) to be installed on your system.
+
+1. **Clone the repo that contains the Python script and other pipeline materials:**
+```bash
+git clone https://github.com/meadm/KOCheck
+```
+
+2. **Navigate inside the repo and run the GUI:**
+```bash
+cd KOCheck
+python run_kocheck_gui.py
+```
+
+The GUI will open in a new window where you can:
+- Select input files through a file browser
+- Configure parameters using simple inputs
+- Monitor pipeline progress
+- Receive a pop-up notification when the pipeline is complete
+
+**Note:** The GUI should work natively on macOS, Windows, and Linux desktop systems. If the GUI doesn't display, you can run the pipeline directly via Docker or Nextflow on the command line (see below).
+
+## Installation Options
+
+### Option 1: Docker (Recommended)
+
+The Docker image (`meadm/kocheck:latest`) contains all dependencies pre-installed. You only need Docker installed on your system.
+
+1. Pull Docker image
+```bash
+docker pull meadm/kocheck:latest
+```
+
+### Option 2: Local Installation
+
+If you already have [Nextflow](https://www.nextflow.io/docs/latest/install.html)(or are able to make a minimal conda environment containing it - see below), [Conda](https://conda-forge.org/download/), and [Docker](https://docs.docker.com/desktop/) installed on your computer, you can run the pipeline directly without using the Docker image. This is useful if you want to modify the pipeline or prefer running Nextflow natively.
+
+**Requirements:**
 - Nextflow (>= 22.10.0)
-- Docker or Conda (for containerized tool execution)
-- Java 11 or higher (for Nextflow)
+  - Java 17 or higher is required for Nextflow
+- Docker and Conda (for containerized tool execution)
+  - Make sure Docker is running before attemping to run the pipeline
 
-## Installation
 
-1. Clone the repository:
+**Installation:**
+
+1. If Nextflow is not installed on your machine, make a minimal conda environment containing Nextflow:
+```bash
+conda create --name kocheck bioconda::nextflow
+conda activate kocheck
+```
+
+2. Clone the repository:
 ```bash
 git clone https://github.com/meadm/KOCheck
 cd KOCheck
 ```
 
-2. Ensure Nextflow is installed:
-```bash
-# Install Nextflow if needed
-curl -s https://get.nextflow.io | bash
-```
-
-The pipeline uses Docker containers and Conda environments as specified in `conf/modules.config`. Make sure Docker is running or Conda is available.
+The pipeline uses Docker containers and Conda environments as specified in `conf/modules.config`. Make sure Docker is running and Conda is available when you run the pipeline locally.
 
 ## Usage
 
-### Basic Usage
+*Instructions on how to run the pipeline via a Python GUI are found above.*
+
+### Docker Usage
+
+Run the pipeline directly in Docker:
+```bash
+docker run --rm \
+  -v $(pwd)/data:/data \
+  -v $(pwd)/results:/output \
+  meadm/kocheck:latest \
+  nextflow run main.nf \
+    --reads "/data/*_{R1,R2}.fq.gz" \
+    --reference /data/reference.fasta \
+    --gene_bed /data/target_gene.bed \
+    --marker_fasta /data/marker.fasta \
+    --outdir /output
+```
+
+### Local Usage (Command Line)
 
 ```bash
 nextflow run main.nf \
@@ -63,7 +122,7 @@ nextflow run main.nf \
 
 - `--reads`: Path pattern to paired-end FASTQ files (e.g., `"data/*_{R1,R2}.fq.gz"`)
 - `--reference`: Path to reference genome FASTA file
-- `--gene_bed`: Path to BED file with target gene coordinates (must contain exactly one line: `chrom start end`)
+- `--gene_bed`: Path to [BED](https://genome.ucsc.edu/FAQ/FAQformat.html#format1) file with target gene coordinates (must contain exactly one line: `chrom start end`)
 - `--marker_fasta`: Path to FASTA file containing the resistance marker sequence
 
 ### Optional Parameters
@@ -76,6 +135,38 @@ nextflow run main.nf \
 - `--min_mapq`: Minimum mapping quality for junction support analysis (default: `20`)
 
 ## Workflow
+
+The pipeline workflow is shown below:
+
+```mermaid
+graph TD
+    A["📁 FASTQ Files<br/>(Paired-end reads)"] --> B["✂️ FASTP<br/>(QC & Trimming)"]
+    B --> C["🗺️ BWA-MEM2<br/>(Alignment)"]
+    C --> D["🔍 MOSDEPTH<br/>(Coverage Analysis)"]
+    D --> E["🔍 DELETION_CHECK<br/>(Gene Coverage)"]
+    E --> F["🔍 MARKER_CHECK<br/>(Marker & Junctions Analysis)"]
+    F --> G["📈 COVERAGE_PLOT<br/>(Visualization)"]
+    G --> H["📋 AGGREGATE_RESULTS<br/>(Summary Report)"]
+    H --> H2["🎯 Final Classification<br/>(PASS / REVIEW / FAIL)"]
+    
+    B -.-> B1["📊 QC Reports<br/>(*.fastp.html/.json)"]
+    C -.-> C1["📦 BAM Files<br/>(*.bam, *.bam.bai)"]
+    D -.-> D1["📚 Coverage Files<br/>(*.mosdepth.summary.txt)"]
+    E -.-> E1["📚 deletion_status.csv<br/>(Coverage Ratio)"]
+    F -.-> F1["📚 marker_status.csv<br/>(Marker Present?<br/>Junction Support)"]
+    G -.-> G1["📈 Coverage Plots<br/>(*.coverage.png)"]
+    H -.-> H1["📚 summary.csv<br/>🖼️ summary.html"]
+    
+    style A fill:#1e88e5,color:#fff
+    style H2 fill:#00c853,color:#fff
+    style B1 fill:#ff6f00,color:#fff
+    style C1 fill:#ff6f00,color:#fff
+    style D1 fill:#ff6f00,color:#fff
+    style E1 fill:#ff6f00,color:#fff
+    style F1 fill:#ff6f00,color:#fff
+    style G1 fill:#ff6f00,color:#fff
+    style H1 fill:#ff6f00,color:#fff
+```
 
 The pipeline consists of the following steps:
 
