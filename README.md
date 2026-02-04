@@ -107,6 +107,20 @@ nextflow run main.nf \
 
 ### Example with Test Data
 
+The repository includes test data in `assets/testdata/` that demonstrates different knockout scenarios:
+
+**Test Samples:**
+- `KO_correct_*`: Successful knockout - gene deleted, marker correctly inserted (expected category: **PASS**)
+- `KO_ectopic_*`: Knockout with ectopic marker insertion - gene deleted but marker in wrong location (expected category: **REVIEW**)
+- `WT_ectopic_*`: Wildtype with ectopic marker - gene intact, marker present elsewhere (expected category: **REVIEW**)
+- `WT_*`: Wildtype control - gene intact, no marker (expected category: **FAIL**)
+
+**Reference Files:**
+- `ref.fasta`: Reference genome FASTA file
+- `target_gene.bed`: BED file with target gene coordinates (0-based, half-open format)
+- `kanR.fasta`: Resistance marker sequence (kanamycin resistance gene)
+
+**Run the pipeline with test data:**
 ```bash
 nextflow run main.nf \
   --reads "assets/testdata/*_{R1,R2}.fq.gz" \
@@ -115,6 +129,8 @@ nextflow run main.nf \
   --marker_fasta assets/testdata/kanR.fasta \
   --marker_contig kanR
 ```
+
+This will process all test samples and generate results demonstrating the different classification outcomes.
 
 ## Parameters
 
@@ -170,10 +186,10 @@ graph TD
 
 The pipeline consists of the following steps:
 
-1. **FASTP**: Quality control and adapter trimming of paired-end reads
+1. **[FASTP](https://github.com/OpenGene/fastp)**: Quality control and adapter trimming of paired-end reads
 2. **APPEND_MARKER**: Combines reference genome with marker sequence for marker detection
-3. **BWA_MEM2**: Alignment of trimmed reads to the combined reference (alignment, sorting, indexing)
-4. **MOSDEPTH**: Coverage calculation across the genome
+3. **[BWA_MEM2](https://github.com/bwa-mem2/bwa-mem2)**: Alignment of trimmed reads to the combined reference (alignment, sorting, indexing)
+4. **[MOSDEPTH](https://github.com/brentp/mosdepth)**: Coverage calculation across the genome
 5. **DELETION_CHECK**: Classifies target gene as `deleted`, `intact`, or `ambiguous` based on coverage ratios
 6. **COVERAGE_PLOT**: Generates visualization of coverage across the target gene region
 7. **MARKER_CHECK**: Validates marker presence, estimates copy number, and detects ectopic integrations
@@ -198,9 +214,23 @@ Results are organized in the `results/` directory (or custom `--outdir`):
   - `kocheck_summary.csv`: Combined CSV with all sample results
   - `kocheck_report.html`: Interactive HTML report with summary statistics, sample table, and embedded coverage plots
 
+### Example Outputs
+
+The pipeline generates comprehensive visualizations and reports. Below are examples of the key outputs:
+
+**HTML Summary Report:**
+The interactive HTML report provides an overview of all samples with summary statistics, detailed sample table, and embedded coverage plots.
+
+![HTML Summary Report](assets/images/html_report_example.png)
+
+**Coverage Plots:**
+Individual coverage plots show the coverage profile across the target gene region for each sample, with the gene region highlighted.
+
+![Coverage Plot Example](assets/images/coverage_plot_example.png)
+
 ### Overall Status Classifications
 
-The marker check module classifies samples into the following categories:
+The `MARKER_CHECK` module classifies samples into the following categories:
 
 - `PASS`: Successful knockout - gene deleted, marker present in one copy, and strong junction support (>10)
 - `FAIL`: Failed knockout - gene is still present (intact)
@@ -209,9 +239,45 @@ The marker check module classifies samples into the following categories:
   - Gene deleted with single-copy marker but weak/moderate junction support
   - Other ambiguous situations where classification is unclear
 
-## Configuration
+## Contributing
 
-Process-specific resource requirements and container configurations are defined in `conf/modules.config`. The pipeline supports both Docker and Conda environments.
+We welcome contributions! There are several ways you can help improve KOCheck:
+
+### Reporting Bugs
+
+If you encounter a bug or unexpected behavior:
+
+1. Check if the issue has already been reported in the [Issues](https://github.com/meadm/KOCheck/issues) section
+2. If not, create a new issue with:
+   - A clear description of the problem
+   - Steps to reproduce the issue
+   - Expected vs. actual behavior
+   - Relevant error messages or logs
+   - Your system information (OS, Nextflow version, etc.)
+
+### Requesting Features
+
+Have an idea for a new feature or improvement?
+
+1. Check existing [Issues](https://github.com/meadm/KOCheck/issues) to see if it's already been requested
+2. Open a new issue with:
+   - A clear description of the proposed feature
+   - Use case or motivation
+   - Any relevant examples or references
+
+### Contributing Code
+
+Contributions are welcome! To contribute:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature-name`)
+3. Make your changes
+4. Test your changes thoroughly
+5. Commit your changes (`git commit -m 'Add some feature'`)
+6. Push to the branch (`git push origin feature/your-feature-name`)
+7. Open a Pull Request
+
+Please ensure your code follows the existing style and includes appropriate documentation. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
 
