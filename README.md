@@ -56,7 +56,7 @@ If you already have [Nextflow](https://www.nextflow.io/docs/latest/install.html)
 - Nextflow (>= 22.10.0)
   - Java 17 or higher is required for Nextflow
 - Docker and Conda (for containerized tool execution)
-  - Make sure Docker is running before attemping to run the pipeline
+  - Make sure Docker is running before attempting to run the pipeline
 
 
 **Installation:**
