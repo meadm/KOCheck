@@ -24,16 +24,19 @@ The easiest way to run KOCheck is using a graphical user interface (GUI) which i
 - Save as a text file
 
 2. **Make sure Docker is installed and running**
-In a terminal type:
+
+- In a terminal type:
 ```bash
 docker run hello-world
 ```
-If Docker is working, you'll see a message starting with:
+  - If Docker is working, you'll see a message starting with:
 ```bash
 Hello from Docker!
 ```
 
-3. In a terminal run:
+3. **Start the GUI**
+
+In a terminal type:
 ```bash
    python run_kocheck_gui.py
 ```
