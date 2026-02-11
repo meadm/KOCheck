@@ -20,7 +20,7 @@ The easiest way to run KOCheck is using a graphical user interface (GUI) which i
 
 1. **Download the GUI launcher**
 - Right click on [this link](https://raw.githubusercontent.com/meadm/KOCheck/main/run_kocheck_gui.py)
-- Select `Save As...`
+- Select `Save Link As...`
 - Save as a text file
 
 2. **Make sure Docker is installed and running**

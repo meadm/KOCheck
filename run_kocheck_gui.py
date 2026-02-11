@@ -382,13 +382,11 @@ class KOCheckGUI:
             "--rm",
             "-m", f"{memory_val}GB",  # Allocate memory from user input
             "--cpus", cpus_val,  # Limit to user-specified CPUs
-            "-v", f"{kocheck_dir}:/workspace",
             "-v", f"{reads_base_dir}:/input/reads",
             "-v", f"{os.path.dirname(reference_file)}:/input/ref",
             "-v", f"{os.path.dirname(gene_bed_file)}:/input/bed",
             "-v", f"{os.path.dirname(marker_fasta_file)}:/input/marker",
             "-v", f"{output_dir}:/output",
-            "-w", "/workspace",
             "meadm/kocheck:latest",
             "nextflow", "run", "main.nf", "-profile", "gui",
             f"--reads=/input/reads/{os.path.basename(reads_pattern_str)}",
