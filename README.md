@@ -12,7 +12,7 @@ A scalable [Nextflow](https://www.nextflow.io/) pipeline for validating genetic 
 - **Comprehensive Reporting**: CSV outputs for deletion status and marker presence
 - **Summary Reports**: Aggregated CSV and interactive HTML report with all sample results and embedded coverage plots
 
-## Workflow Overview
+## Workflow Overview (Diagram)
 
 ```mermaid
 graph TD
@@ -121,7 +121,7 @@ The pipeline uses Docker containers and Conda environments as specified in `conf
 
 ## Usage
 
-*Instructions on how to run the pipeline via a Python GUI are found above.*
+*Instructions on how to run the pipeline via a Python-launched GUI are found above.*
 
 ### Docker Usage
 
