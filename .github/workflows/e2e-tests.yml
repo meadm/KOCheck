@@ -1,0 +1,37 @@
+name: End-to-End Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nextflow
+        run: |
+          wget -qO- https://get.nextflow.io | bash
+          sudo mv nextflow /usr/local/bin/
+
+      - name: Run pipeline on test data
+        run: nextflow run main.nf --reads "assets/testdata/*_{R1,R2}.fq.gz" --reference assets/testdata/ref.fasta --gene_bed assets/testdata/target_gene.bed --marker_fasta assets/testdata/kanR.fasta --marker_contig kanR -profile docker -resume
+
+      - name: Verify KO_correct result (expected: PASS)
+        run: grep -q "PASS" results/marker_check/KO_correct_marker_status.csv || (echo "KO_correct should be PASS" && exit 1)
+
+      - name: Verify KO_ectopic result (expected: REVIEW)
+        run: grep -q "REVIEW" results/marker_check/KO_ectopic_marker_status.csv || (echo "KO_ectopic should be REVIEW" && exit 1)
+
+      - name: Verify WT result (expected: FAIL)
+        run: grep -q "FAIL" results/marker_check/WT_marker_status.csv || (echo "WT should be FAIL" && exit 1)
+
+      - name: Verify WT_ectopic result (expected: REVIEW)
+        run: grep -q "REVIEW" results/marker_check/WT_ectopic_marker_status.csv || (echo "WT_ectopic should be REVIEW" && exit 1)
