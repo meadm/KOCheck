@@ -30,7 +30,7 @@ jobs:
 
       - name: Run pipeline on test data
         run: |
-          nextflow run main.nf
+          nextflow run main.nf -profile github
 
       - name: "Verify KO_correct result (expected: PASS)"
         run: grep -q "PASS" results/marker_check/KO_correct_marker_status.csv || (echo "KO_correct should be PASS" && exit 1)
