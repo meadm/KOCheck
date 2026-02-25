@@ -26,6 +26,8 @@ process FASTP {
       --thread ${task.cpus} \
       --html ${sample_id}.fastp.html \
       --json ${sample_id}.fastp.json
+    
+    ls -lh
     """
 }
 
