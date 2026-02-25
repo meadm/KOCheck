@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   e2e-test:
@@ -23,7 +24,7 @@ jobs:
 
       - name: Run pipeline on test data
         run: |
-          nextflow run main.nf --reads "assets/testdata/*_{R1,R2}.fq.gz" --reference assets/testdata/ref.fasta --gene_bed assets/testdata/target_gene.bed --marker_fasta assets/testdata/kanR.fasta --marker_contig kanR -profile docker -resume
+          nextflow run main.nf --reads "assets/testdata/*_{R1,R2}.fq.gz" --reference assets/testdata/ref.fasta --gene_bed assets/testdata/target_gene.bed --marker_fasta assets/testdata/kanR.fasta --marker_contig kanR -resume
 
       - name: "Verify KO_correct result (expected: PASS)"
         run: grep -q "PASS" results/marker_check/KO_correct_marker_status.csv || (echo "KO_correct should be PASS" && exit 1)
