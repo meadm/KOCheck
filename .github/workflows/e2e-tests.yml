@@ -26,6 +26,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           use-mamba: true
+          channels: conda-forge, bioconda, defaults
 
       - name: Run pipeline on test data
         run: |
