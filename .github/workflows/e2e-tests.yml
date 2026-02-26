@@ -41,5 +41,5 @@ jobs:
       - name: "Verify WT result (expected: FAIL)"
         run: grep -q "FAIL" results/marker_check/WT.marker_check.csv || (echo "WT should be FAIL" && exit 1)
 
-      - name: "Verify WT_ectopic result (expected: REVIEW)"
-        run: grep -q "REVIEW" results/marker_check/WT_ectopic.marker_check.csv || (echo "WT_ectopic should be REVIEW" && exit 1)
+      - name: "Verify WT_ectopic result (expected: FAIL)"
+        run: grep -q "FAIL" results/marker_check/WT_ectopic.marker_check.csv || (echo "WT_ectopic should be REVIEW" && exit 1)

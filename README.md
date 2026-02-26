@@ -156,7 +156,7 @@ The repository includes test data in `assets/testdata/` that demonstrates differ
 ### Test Samples:
 - `KO_correct_*`: Successful knockout - gene deleted, marker correctly inserted (expected category: **PASS**)
 - `KO_ectopic_*`: Knockout with ectopic marker insertion - gene deleted but marker in wrong location (expected category: **REVIEW**)
-- `WT_ectopic_*`: Wildtype with ectopic marker - gene intact, marker present elsewhere (expected category: **REVIEW**)
+- `WT_ectopic_*`: Wildtype with ectopic marker - gene intact, marker present elsewhere (expected category: **FAIL**)
 - `WT_*`: Wildtype control - gene intact, no marker (expected category: **FAIL**)
 
 ### Reference Files:
