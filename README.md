@@ -1,5 +1,9 @@
 # KOCheck ✅
 
+[![End-to-End Tests](https://github.com/meadm/KOCheck/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/meadm/KOCheck/actions/workflows/e2e-tests.yml)
+
+[![Build and Push Docker Image](https://github.com/meadm/KOCheck/actions/workflows/docker-build-push.yml/badge.svg)](https://github.com/meadm/KOCheck/actions/workflows/docker-build-push.yml)
+
 A scalable [Nextflow](https://www.nextflow.io/) pipeline for validating genetic knockouts. KOCheck analyzes short-read (Illumina) sequencing reads to confirm gene deletions, detect correct resistance marker insertion, and identify ectopic integrations across the genome. Designed primarily for microbiological and fungal genetic workflows.
 
 ## Features
@@ -11,6 +15,10 @@ A scalable [Nextflow](https://www.nextflow.io/) pipeline for validating genetic 
 - **Coverage Visualization**: Generates coverage plots for the target gene region
 - **Comprehensive Reporting**: CSV outputs for deletion status and marker presence
 - **Summary Reports**: Aggregated CSV and interactive HTML report with all sample results and embedded coverage plots
+- **Continuous Integration and Docker Builds**: This repository includes GitHub Actions workflows that upon a push/PR to the main branch:
+    - Run the pipeline end-to-end on the included test data.
+    - Build and publish a Docker image (meadm/kocheck) to Docker Hub.
+
 
 ## Workflow Overview (Diagram)
 
