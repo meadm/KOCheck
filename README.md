@@ -6,6 +6,8 @@
 
 A scalable [Nextflow](https://www.nextflow.io/) pipeline for validating genetic knockouts. KOCheck analyzes short-read (Illumina) sequencing reads to confirm gene deletions, detect correct resistance marker insertion, and identify ectopic integrations across the genome. Designed primarily for microbiological and fungal genetic workflows.
 
+![HTML Summary Report](assets/images/html_report_example.png)
+
 ## Features
 
 - **Quality Control**: Automatic adapter trimming and quality filtering with [fastp](https://github.com/OpenGene/fastp)
@@ -86,6 +88,8 @@ Hello from Docker!
   - Configure parameters using simple inputs
   - Monitor pipeline progress
   - Receive a pop-up notification when the pipeline is complete
+
+![Python GUI](assets/images/python_gui.png)
 
 **Note:** The GUI should work natively on macOS, Windows, and Linux desktop systems. If the GUI doesn't display, you can run the pipeline directly via Docker or Nextflow on the command line (see below).
 
