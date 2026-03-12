@@ -89,7 +89,9 @@ Hello from Docker!
   - Monitor pipeline progress
   - Receive a pop-up notification when the pipeline is complete
 
-<img src="assets/images/python_gui.png" style="height: 75%; width: auto;" alt="Python GUI Screenshot">
+<p align="center">
+  <img src="assets/images/python_gui.png" alt="Python GUI Screenshot" height="600">
+</p>
 
 **Note:** The GUI should work natively on macOS, Windows, and Linux desktop systems. If the GUI doesn't display, you can run the pipeline directly via Docker or Nextflow on the command line (see below).
 
